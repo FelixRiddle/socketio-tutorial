@@ -43,17 +43,26 @@ const io = new Server(server, {
             console.log(`User disconnected`);
         });
         
-        socket.on("chat message", async (msg) => {
+        socket.on("chat message", async (msg, clientOffset, callback) => {
             let result;
             try {
                 // Store messages in the database
-                result = await db.run(`INSERT INTO messages (content) VALUES (?)`, msg);
+                result = await db.run(`INSERT INTO messages (content, client_offset) VALUES (?, ?)`, msg, clientOffset);
             } catch(err: any) {
                 console.error(err);
+                if(err.errno === 19) {
+                    // The message was already inserted so we notify the client
+                    callback();
+                } else {
+                    // Nothing to do, just let the client retry
+                }
                 return;
             }
             
             io.emit("chat message", msg, result.lastID);
+            
+            // Acknowledge the callback
+            callback();
         });
         
         if(!socket.recovered) {

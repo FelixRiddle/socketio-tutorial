@@ -40,10 +40,15 @@
       });
     </script>
     <script>
+        let counter = 0;
+        
         const socket = io({
             auth: {
                 serverOffset: 0,
-            }
+            },
+            // Enable retries
+            ackTimeout: 10000,
+            retries: 3,
         });
       
         const form = document.getElementById('form');
@@ -53,7 +58,9 @@
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             if (input.value) {
-                socket.emit('chat message', input.value);
+                // Compute a unique offset
+                const clientOffset = `${socket.id}-${counter++}`;
+                socket.emit('chat message', input.value, clientOffset);
                 input.value = '';
             }
         });
